@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "build": "tsc",
+    "package": "ncc build --source-map --license licenses.txt"
+  }
+}
