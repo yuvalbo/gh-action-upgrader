@@ -1,17 +1,14 @@
-name: Update Action Versions
-on:
-  schedule:
-    - cron: '0 0 * * 0'  # Run weekly
-  workflow_dispatch:      # Allow manual triggers
-
-jobs:
-  update-actions:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v3
-      - uses: your-username/action-updater@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+name: 'GitHub Action Version Updater'
+description: 'Automatically checks and updates versions of third-party actions used in your workflows'
+author: 'Yuval Bo'
+inputs:
+  github-token:
+    description: 'GitHub token for API authentication'
+    required: true
+    default: ${{ secrets.GITHUB_TOKEN }}
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
+branding:
+  icon: 'refresh-cw'
+  color: 'blue'
