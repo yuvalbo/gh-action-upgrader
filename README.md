@@ -39,3 +39,30 @@ jobs:
       - uses: your-username/action-updater@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+The action requires the following permissions:
+
+* `contents: write` - To create branches and commit changes
+* `pull-requests: write` - To create pull requests
+
+## Configuration
+The GitHub Action Version Updater has the following input:
+| Input          | Description                         | Default             |
+|----------------|-------------------------------------|---------------------|
+| `github-token` | GitHub token for API authentication | ${{ github.token }} |
+
+## Contributing
+Contributions to the GitHub Action Version Updater are welcome! If you have any ideas for improvement or encounter any issues, please feel free to open an issue or submit a pull request.
+## License
+This project is licensed under the MIT License.
+
+This README covers the key aspects of the GitHub Action, including:
+
+- Description of the action's purpose and features
+- Usage instructions and configuration
+- Required permissions
+- Contributing guidelines
+- License information
+
+Feel free to customize this README further to match your project's specific details and requirements. Let me know if you need any clarification or have additional requests.
