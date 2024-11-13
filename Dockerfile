@@ -26,4 +26,4 @@ RUN echo "Contents of dist directory:" && ls -la dist || echo "dist directory no
 RUN echo "Contents of src directory:" && ls -la src || echo "src directory not found"
 
 # Run the compiled JavaScript
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/index.ts"]
