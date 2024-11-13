@@ -6,7 +6,7 @@ import * as yaml from 'js-yaml';
 import { compare, validate } from 'compare-versions';
 
 // Dynamically import the `@octokit/rest` library
-let Octokit: any;
+let Octokit: typeof import('@octokit/rest').Octokit;
 (async () => {
   Octokit = (await import('@octokit/rest')).Octokit;
 })();
@@ -101,7 +101,7 @@ function extractActionsFromWorkflow(workflow: any, filePath: string): ActionRefe
   return actions;
 }
 
-async function getLatestVersion(octokit: Octokit, action: ActionReference): Promise<string | null> {
+async function getLatestVersion(octokit: typeof Octokit, action: ActionReference): Promise<string | null> {
   try {
     // Try to get latest release first
     const { data: release } = await octokit.repos.getLatestRelease({
@@ -124,88 +124,4 @@ async function getLatestVersion(octokit: Octokit, action: ActionReference): Prom
   }
 }
 
-function isNewerVersion(current: string, latest: string): boolean {
-  // Remove 'v' prefix if present
-  current = current.replace(/^v/, '');
-  latest = latest.replace(/^v/, '');
-  
-  // Validate versions
-  if (!validate(current) || !validate(latest)) {
-    core.debug(`Invalid version format: current=${current}, latest=${latest}`);
-    return false;
-  }
-  
-  try {
-    // Returns true if latest is greater than current
-    return compare(latest, current, '>');
-  } catch (error) {
-    core.debug(`Error comparing versions: ${error}`);
-    return false;
-  }
-}
-
-async function createPullRequest(
-  octokit: Octokit,
-  action: ActionReference,
-  newVersion: string
-): Promise<void> {
-  const { owner, repo } = github.context.repo;
-  const branchName = `action-update/${action.owner}-${action.repo}-${newVersion}`;
-  
-  // Get current file content
-  const content = fs.readFileSync(action.filePath, 'utf8');
-  
-  // Update version in content
-  const updatedContent = content.replace(
-    `${action.owner}/${action.repo}@${action.currentVersion}`,
-    `${action.owner}/${action.repo}@${newVersion}`
-  );
-  
-  try {
-    // Create new branch
-    const { data: ref } = await octokit.git.getRef({
-      owner,
-      repo,
-      ref: 'heads/main'
-    });
-    
-    await octokit.git.createRef({
-      owner,
-      repo,
-      ref: `refs/heads/${branchName}`,
-      sha: ref.object.sha
-    });
-    
-    // Update file in new branch
-    const { data: file } = await octokit.repos.getContent({
-      owner,
-      repo,
-      path: action.filePath,
-      ref: 'heads/main'
-    });
-    
-    await octokit.repos.createOrUpdateFileContents({
-      owner,
-      repo,
-      path: action.filePath,
-      message: `Update ${action.owner}/${action.repo} to ${newVersion}`,
-      content: Buffer.from(updatedContent).toString('base64'),
-      branch: branchName,
-      sha: (file as any).sha
-    });
-    
-    // Create pull request
-    await octokit.pulls.create({
-      owner,
-      repo,
-      title: `Update ${action.owner}/${action.repo} to ${newVersion}`,
-      head: branchName,
-      base: 'main',
-      body: `Updates ${action.owner}/${action.repo} from ${action.currentVersion} to ${newVersion}.`
-    });
-  } catch (error) {
-    core.warning(`Failed to create PR for ${action.owner}/${action.repo}: ${error}`);
-  }
-}
-
-run();
+function isNewerVersion(current: string,
