@@ -149,7 +149,7 @@ async function createPullRequest(
   newVersion: string
 ): Promise<void> {
   const { owner, repo } = github.context.repo;
-  const randomString = randomUUID();
+  const timestamp = Date.now();
   const branchName = `gh-action-upgrader/${action.owner}-${action.repo}-${newVersion}-${timestamp}`;
   
   // Get current file content
