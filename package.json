@@ -3,6 +3,9 @@
     "build": "tsc",
     "package": "ncc build --source-map --license licenses.txt"
   },
+  "dependencies": {
+    "@octokit/rest": "^18.0.0"
+  },
   "devDependencies": {
     "typescript": "^4.0.0",
     "@types/node": "^18.0.0",
