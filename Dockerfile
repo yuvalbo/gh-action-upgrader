@@ -9,7 +9,8 @@ COPY . .
 
 # Install dependencies
 RUN npm install
-RUN npm install @actions/core
+RUN npm install @actions/core --save
+
 
 # Install dev dependencies
 RUN npm install --save-dev @types/js-yaml
