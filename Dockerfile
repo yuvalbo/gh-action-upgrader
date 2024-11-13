@@ -4,11 +4,14 @@ FROM node:20
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
+# Install TypeScript globally to ensure tsc is available
+RUN npm install -g typescript
+
 # Copy only package.json and package-lock.json to leverage Docker cache for dependencies
 COPY package*.json ./
 
-# Install all dependencies (including TypeScript as a dev dependency)
-RUN npm install --include=dev
+# Install all project dependencies (including dev dependencies)
+RUN npm install
 
 # Copy the rest of the application code
 COPY . .
