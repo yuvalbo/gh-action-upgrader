@@ -10,11 +10,11 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Install type definitions for js-yaml (and other missing types, if any)
-RUN npm i --save-dev @types/js-yaml
-
 # Copy all the source files
 COPY . .
+
+# Install type definitions for js-yaml (and other missing types, if any)
+RUN npm i --save-dev @types/js-yaml
 
 # Build the project
 RUN npm run build
