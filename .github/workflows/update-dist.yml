@@ -19,7 +19,7 @@ jobs:
       - name: Build dist folder with Docker
         run: |
           docker build -t github-action-builder .
-          docker run --rm -v ${{ github.workspace }}/dist:/usr/src/app/dist github-action-builder
+          docker run --rm -v ${{ github.workspace }}/dist:/usr/src/app/output github-action-builder
 
       # Step 3: Commit changes if any
       - name: Commit changes
