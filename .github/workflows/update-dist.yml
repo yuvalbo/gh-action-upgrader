@@ -19,7 +19,7 @@ jobs:
       - name: Build dist folder with Docker
         run: |
           docker build -t github-action-builder .
-          docker run --rm -v ${{ github.workspace }}/dist:/usr/src/app/out github-action-builder
+          docker run --rm -v ${{ github.workspace }}/dist:/usr/output github-action-builder
           echo "${{ github.workspace }}/dist content is:"
           ls -la ${{ github.workspace }}/dist
 
