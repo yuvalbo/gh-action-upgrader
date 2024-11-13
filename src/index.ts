@@ -133,15 +133,36 @@ function isNewerVersion(current: string, latest: string): boolean {
     core.debug(`Invalid version format: current=${current}, latest=${latest}`);
     return false;
   }
-  
+
+  // Split versions into parts (major.minor.patch)
+  const currentParts = current.split('.').map(Number);
+  const latestParts = latest.split('.').map(Number);
+
   try {
-    // Returns true if latest is greater than current
-    return compare(latest, current, '>');
+    if (currentParts.length === 1) {
+      // Only major version is specified
+      return latestParts[0] > currentParts[0];
+    } else if (currentParts.length === 2) {
+      // Major and minor versions are specified
+      return (
+        latestParts[0] > currentParts[0] || 
+        (latestParts[0] === currentParts[0] && latestParts[1] > currentParts[1])
+      );
+    } else if (currentParts.length === 3) {
+      // Full version is specified
+      return (
+        latestParts[0] > currentParts[0] ||
+        (latestParts[0] === currentParts[0] && latestParts[1] > currentParts[1]) ||
+        (latestParts[0] === currentParts[0] && latestParts[1] === currentParts[1] && latestParts[2] > currentParts[2])
+      );
+    }
+    return false;
   } catch (error) {
     core.debug(`Error comparing versions: ${error}`);
     return false;
   }
 }
+
 
 async function createPullRequest(
   octokit: any,
