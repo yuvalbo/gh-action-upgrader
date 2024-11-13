@@ -37,6 +37,7 @@ async function run() {
         const token = core.getInput('github-token', { required: true });
         const octokit = new Octokit({ auth: token });
         const { owner, repo } = github.context.repo;
+        core.debug(`in run `);
         // Scan .github directory
         const actionsToUpdate = await scanWorkflowFiles(owner, repo);
         for (const action of actionsToUpdate) {
