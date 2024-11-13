@@ -25,4 +25,5 @@ RUN echo "Contents after build:" && ls -la
 RUN echo "Contents of dist directory:" && ls -la dist || echo "dist directory not found"
 RUN echo "Contents of src directory:" && ls -la src || echo "src directory not found"
 
-COPY dist/index.js /usr/src/app/out
+RUN mkdir /usr/src/app/out
+RUN cp dist/index.js /usr/src/app/out
