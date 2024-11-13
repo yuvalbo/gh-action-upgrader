@@ -22,6 +22,8 @@ async function run(): Promise<void> {
     const octokit = new Octokit({ auth: token });
     const { owner, repo } = github.context.repo;
 
+     core.debug(`in run `);
+
     // Scan .github directory
     const actionsToUpdate = await scanWorkflowFiles(owner, repo);
     
