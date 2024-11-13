@@ -4,12 +4,12 @@ WORKDIR /usr/src/app
 
 # Copy package files
 COPY package*.json ./
+# Copy source code and config files
+COPY . .
 
 # Install dependencies
 RUN npm install
-
-# Copy source code and config files
-COPY . .
+RUN npm install @actions/core
 
 # Install dev dependencies
 RUN npm install --save-dev @types/js-yaml
