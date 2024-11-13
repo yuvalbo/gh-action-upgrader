@@ -27,3 +27,4 @@ RUN echo "Contents of src directory:" && ls -la src || echo "src directory not f
 
 RUN mkdir /usr/src/app/out
 RUN cp dist/index.js /usr/src/app/out
+RUN echo "Contents of out directory:" && ls -la /usr/src/app/out || echo "/usr/src/app/out directory not found"
