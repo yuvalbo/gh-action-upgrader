@@ -38,13 +38,14 @@ jobs:
       - uses: actions/checkout@v3
       - uses: your-username/action-updater@v1
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.WORKFLOW_TOKEN }}
 ```
 
 The action requires the following permissions:
 
 * `contents: write` - To create branches and commit changes
 * `pull-requests: write` - To create pull requests
+* `WORKFLOW_TOKEN` - In order to create a PR that changes the files under the `.github/workflow` directory, you will need to set up a token that has `workflow` permissions.
 
 ## Configuration
 The GitHub Action Version Updater has the following input:
