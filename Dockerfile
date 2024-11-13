@@ -24,6 +24,7 @@ RUN npm run build
 RUN echo "Contents after build:" && ls -la
 RUN echo "Contents of dist directory:" && ls -la dist || echo "dist directory not found"
 RUN echo "Contents of src directory:" && ls -la src || echo "src directory not found"
+RUN echo "Contents of dist/index.js " && cat dist/index.js || echo "dist/index.js is empty"
 
 # Run the compiled JavaScript
 CMD ["node", "dist/index.js"]
