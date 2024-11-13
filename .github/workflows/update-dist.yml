@@ -20,6 +20,8 @@ jobs:
         run: |
           docker build -t github-action-builder .
           docker run --rm -v ${{ github.workspace }}/dist:/usr/src/app/output github-action-builder
+          echo "${{ github.workspace }}/dist content is:"
+          ls -la ${{ github.workspace }}/dist
 
       # Step 3: Commit changes if any
       - name: Commit changes
