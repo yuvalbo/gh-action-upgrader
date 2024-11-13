@@ -12,6 +12,7 @@ jobs:
 
     permissions:
       contents: write  # This allows the bot to push changes to the repository
+      pull-requests: write
 
     steps:
       # Step 1: Check out the repository
