@@ -5,14 +5,18 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { compare, validate } from 'compare-versions';
 
+// Dynamically import the `@octokit/rest` library
+let Octokit: any;
+(async () => {
+  Octokit = (await import('@octokit/rest')).Octokit;
+})();
+
 interface ActionReference {
   owner: string;
   repo: string;
   currentVersion: string;
   filePath: string;
 }
-
-const { Octokit } = await import('@octokit/rest');
 
 async function run(): Promise<void> {
   try {
