@@ -146,7 +146,7 @@ function isNewerVersion(current, latest) {
 }
 async function createPullRequest(octokit, action, newVersion) {
     const { owner, repo } = github.context.repo;
-    const timestamp = new Date().toISOString();
+    const timestamp = Date.now();
     const branchName = `gh-action-upgrader/${action.owner}-${action.repo}-${newVersion}-${timestamp}`;
     // Get current file content
     const content = fs.readFileSync(action.filePath, 'utf8');
