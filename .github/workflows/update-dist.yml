@@ -29,7 +29,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add dist
-          git commit -m "Update dist folder" || echo "No changes to commit"
+          git commit -am "Update dist folder" || echo "No changes to commit"
 
       # Step 4: Push changes to a new branch
       - name: Push changes
