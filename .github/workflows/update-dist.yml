@@ -35,7 +35,7 @@ jobs:
           title: "Update dist folder"
           body: "This PR updates the dist folder with the latest build output."
           labels: "Generated,Bot"
-          committer: "github-actions[bot]"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
           author: "${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>"
           commit-message: "Generate or update dist/index.js"
           base: main
