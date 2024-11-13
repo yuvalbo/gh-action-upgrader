@@ -1,23 +1,23 @@
-# Use an official Node.js image as the base
+# Use a Node.js image
 FROM node:20
 
-# Set the working directory in the container
+# Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Install TypeScript globally to ensure tsc is available
-RUN npm install -g typescript
-
-# Copy only package.json and package-lock.json to leverage Docker cache for dependencies
+# Copy package.json and package-lock.json first to install dependencies
 COPY package*.json ./
 
-# Install all project dependencies (including dev dependencies)
+# Install dependencies
 RUN npm install
 
-# Copy the rest of the application code
+# Install type definitions for js-yaml (and other missing types, if any)
+RUN npm i --save-dev @types/js-yaml
+
+# Copy all the source files
 COPY . .
 
-# Run the build script defined in package.json
+# Build the project
 RUN npm run build
 
-# Default command (optional): list contents of the dist folder to verify the build
-CMD ["ls", "-l", "dist"]
+# Set the default command to run the built file (if needed)
+CMD ["node", "dist/index.js"]
