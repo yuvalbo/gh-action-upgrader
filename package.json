@@ -2,5 +2,12 @@
   "scripts": {
     "build": "tsc",
     "package": "ncc build --source-map --license licenses.txt"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.0",
+    "@types/node": "^18.0.0",
+    "@types/js-yaml": "^4.0.0",
+    "@types/compare-versions": "^3.6.0",
+    "@types/octokit__rest": "^18.0.0"
   }
 }
