@@ -143,57 +143,69 @@ function isNewerVersion(current: string, latest: string): boolean {
   }
 }
 
-async function createPullRequest(octokit, action, newVersion) {
-    const { owner, repo } = github.context.repo;
-    const timestamp = new Date().toISOString();  // or use a random string
-    const branchName = `gh-action-upgrader/${action.owner}-${action.repo}-${newVersion}-${timestamp}`;
-    // Get current file content
-    const content = fs.readFileSync(action.filePath, 'utf8');
-    // Update version in content
-    const updatedContent = content.replace(`${action.owner}/${action.repo}@${action.currentVersion}`, `${action.owner}/${action.repo}@${newVersion}`);
-    try {
-        // Create new branch
-        const { data: ref } = await octokit.git.getRef({
-            owner,
-            repo,
-            ref: 'heads/main'
-        });
-        await octokit.git.createRef({
-            owner,
-            repo,
-            ref: `refs/heads/${branchName}`,
-            sha: ref.object.sha
-        });
-        // Update file in new branch
-        const { data: file } = await octokit.repos.getContent({
-            owner,
-            repo,
-            path: action.filePath,
-            ref: 'heads/main'
-        });
-        await octokit.repos.createOrUpdateFileContents({
-            owner,
-            repo,
-            path: action.filePath,
-            message: `Update ${action.owner}/${action.repo} to ${newVersion}`,
-            content: Buffer.from(updatedContent).toString('base64'),
-            branch: branchName,
-            sha: file.sha
-        });
-        // Create pull request
-        await octokit.pulls.create({
-            owner,
-            repo,
-            title: `Update ${action.owner}/${action.repo} to ${newVersion}`,
-            head: branchName,
-            base: 'main',
-            body: `Updates ${action.owner}/${action.repo} from ${action.currentVersion} to ${newVersion}.`
-        });
-    }
-    catch (error) {
-        core.warning(`Failed to create PR for ${action.owner}/${action.repo}: ${error}`);
-    }
+async function createPullRequest(
+  octokit: any,
+  action: ActionReference,
+  newVersion: string
+): Promise<void> {
+  const { owner, repo } = github.context.repo;
+  const timestamp = new Date().toISOString();
+  const branchName = `gh-action-upgrader/${action.owner}-${action.repo}-${newVersion}-${timestamp}`;
+  
+  // Get current file content
+  const content = fs.readFileSync(action.filePath, 'utf8');
+  
+  // Update version in content
+  const updatedContent = content.replace(
+    `${action.owner}/${action.repo}@${action.currentVersion}`,
+    `${action.owner}/${action.repo}@${newVersion}`
+  );
+  
+  try {
+    // Create new branch
+    const { data: ref } = await octokit.git.getRef({
+      owner,
+      repo,
+      ref: 'heads/main'
+    });
+    
+    await octokit.git.createRef({
+      owner,
+      repo,
+      ref: `refs/heads/${branchName}`,
+      sha: ref.object.sha
+    });
+    
+    // Update file in new branch
+    const { data: file } = await octokit.repos.getContent({
+      owner,
+      repo,
+      path: action.filePath,
+      ref: 'heads/main'
+    });
+    
+    await octokit.repos.createOrUpdateFileContents({
+      owner,
+      repo,
+      path: action.filePath,
+      message: `Update ${action.owner}/${action.repo} to ${newVersion}`,
+      content: Buffer.from(updatedContent).toString('base64'),
+      branch: branchName,
+      sha: (file as any).sha
+    });
+    
+    // Create pull request
+    await octokit.pulls.create({
+      owner,
+      repo,
+      title: `Update ${action.owner}/${action.repo} to ${newVersion}`,
+      head: branchName,
+      base: 'main',
+      body: `Updates ${action.owner}/${action.repo} from ${action.currentVersion} to ${newVersion}.`
+    });
+  } catch (error) {
+    core.warning(`Failed to create PR for ${action.owner}/${action.repo}: ${error}`);
+  }
 }
-
 
 run();
