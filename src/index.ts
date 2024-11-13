@@ -3,7 +3,6 @@ import * as github from '@actions/github';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import { Octokit } from '@octokit/rest';
 import { compare, validate } from 'compare-versions';
 
 interface ActionReference {
@@ -12,6 +11,8 @@ interface ActionReference {
   currentVersion: string;
   filePath: string;
 }
+
+const { Octokit } = await import('@octokit/rest');
 
 async function run(): Promise<void> {
   try {
