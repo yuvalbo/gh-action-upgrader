@@ -27,22 +27,6 @@ jobs:
           echo "${{ github.workspace }}/dist content is:"
           ls -la ${{ github.workspace }}/dist
 
-      # Step 3: Commit changes if any
-      - name: Commit changes
-        run: |
-          git checkout -b "update-dist-${{ github.run_id }}"
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add dist
-          git commit -am "Update dist folder" || echo "No changes to commit"
-
-      # Step 4: Push changes to a new branch
-      - name: Push changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:"update-dist-${{ github.run_id }}"
-
       # Step 5: Create a pull request
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
@@ -51,6 +35,9 @@ jobs:
           title: "Update dist folder"
           body: "This PR updates the dist folder with the latest build output."
           labels: "Generated,Bot"
+          committer: "github-actions[bot]"
+          author: "github-actions[bot]@users.noreply.github.com"
+          commit-message: "Generate or update dist/index.js"
           base: main
 
       - name: Check outputs
