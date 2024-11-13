@@ -1,4 +1,6 @@
 {
+  "name": "github-action-updater",
+  "version": "1.0.0",
   "scripts": {
     "build": "tsc",
     "package": "ncc build --source-map --license licenses.txt",
