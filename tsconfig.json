@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
     "target": "es2018",
-    "module": "commonjs",
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleResolution": "node16",
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "module": "node16"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
