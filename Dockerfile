@@ -1,23 +1,29 @@
-# Use a Node.js image
 FROM node:20
 
-# Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json first to install dependencies
+# Copy package files
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy all the source files
+# Copy source code and config files
 COPY . .
 
-# Install type definitions for js-yaml (and other missing types, if any)
-RUN npm i --save-dev @types/js-yaml
+# Install dev dependencies
+RUN npm install --save-dev @types/js-yaml
 
-# Build the project
+# Debug: List contents before build
+RUN echo "Contents before build:" && ls -la
+
+# Build TypeScript code
 RUN npm run build
 
-# Set the default command to run the built file (if needed)
+# Debug: List contents after build
+RUN echo "Contents after build:" && ls -la
+RUN echo "Contents of dist directory:" && ls -la dist || echo "dist directory not found"
+RUN echo "Contents of src directory:" && ls -la src || echo "src directory not found"
+
+# Run the compiled JavaScript
 CMD ["node", "dist/index.js"]
