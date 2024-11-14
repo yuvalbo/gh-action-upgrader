@@ -24,6 +24,7 @@ jobs:
           docker run --rm -v ${{ github.workspace }}:/usr/output github-action-builder
           echo "${{ github.workspace }}/dist content is:"
           ls -la ${{ github.workspace }}/dist
+          git add *
 
       # Step 5: Create a pull request
       - name: Create Pull Request
