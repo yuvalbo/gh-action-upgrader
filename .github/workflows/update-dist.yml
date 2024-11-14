@@ -20,22 +20,13 @@ jobs:
       - name: Build dist folder with Docker
         run: |
           docker build -t github-action-builder .
-          docker run --rm -v ${{ github.workspace }}:/usr/output github-action-builder
-          echo "${{ github.workspace }}/dist content is:"
-          ls -la ${{ github.workspace }}/dist
-
-      # Step 5: Create a pull request
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
-        with:
-          branch: "update-dist-${{ github.run_id }}"
-          title: "Update dist and node_modules folders"
-          body: "This PR updates the dist and node_modules folders with the latest build output"
-          labels: "Generated,Bot"
-          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
-          author: "${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>"
-          commit-message: "Generate or update dist/index.js and node_modules content"
-          base: main
+          chmod -R a+w node_modules
+          docker run --rm -v ${{ github.workspace }}:/usr/output github-action-builder	          docker run --rm -v ${{ github.workspace }}:/usr/output github-action-builder
+          echo "${{ github.workspace }}/dist content is:"	          git config --global user.name 'Yuval Bo'
+          ls -la ${{ github.workspace }}/dist	          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com>'
+          git add *
+          git commit -am "Update dist and node_modules ${{ github.run_id }}"
+          gh pr create --base main --head "update-dist-${{ github.run_id }}" 
 
       - name: Check outputs
         if: ${{ steps.cpr.outputs.pull-request-number }}
