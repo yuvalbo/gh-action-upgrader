@@ -22,9 +22,7 @@ jobs:
           docker build -t github-action-builder .
           chmod -R a+w node_modules
           docker run --rm -v ${{ github.workspace }}:/usr/output github-action-builder
-          echo "${{ github.workspace }}/dist content is:"
-          ls -la ${{ github.workspace }}/dist
-          git add *
+          git commit -am "Update dist and node_modules ${{ github.run_id }}"
 
       # Step 5: Create a pull request
       - name: Create Pull Request
