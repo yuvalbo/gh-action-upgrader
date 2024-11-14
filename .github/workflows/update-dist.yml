@@ -21,9 +21,9 @@ jobs:
         run: |
           docker build -t github-action-builder .
           chmod -R a+w node_modules
-          docker run --rm -v ${{ github.workspace }}:/usr/output github-action-builder	          docker run --rm -v ${{ github.workspace }}:/usr/output github-action-builder
-          echo "${{ github.workspace }}/dist content is:"	          git config --global user.name 'Yuval Bo'
-          ls -la ${{ github.workspace }}/dist	          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com>'
+          docker run --rm -v ${{ github.workspace }}:/usr/output github-action-builder	          
+          git config --global user.name 'Yuval Bo'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com>'
           git add *
           git commit -am "Update dist and node_modules ${{ github.run_id }}"
           gh pr create --base main --head "update-dist-${{ github.run_id }}" 
