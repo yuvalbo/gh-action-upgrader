@@ -55,15 +55,68 @@ The GitHub Action Version Updater has the following input:
 
 ## Contributing
 Contributions to the GitHub Action Version Updater are welcome! If you have any ideas for improvement or encounter any issues, please feel free to open an issue or submit a pull request.
-## License
-This project is licensed under the MIT License.
 
-This README covers the key aspects of the GitHub Action, including:
+# License and Third-Party Attribution
 
-- Description of the action's purpose and features
-- Usage instructions and configuration
-- Required permissions
-- Contributing guidelines
-- License information
+## Project License
+MIT License
 
-Feel free to customize this README further to match your project's specific details and requirements. Let me know if you need any clarification or have additional requests.
+Copyright (c) 2024
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Third-Party Dependencies
+
+This action uses the following third-party packages:
+
+### Production Dependencies
+
+| Package | Version | License | Repository |
+|---------|---------|---------|------------|
+| @actions/core | ^1.10.1 | MIT | https://github.com/actions/toolkit |
+| @actions/github | ^6.0.0 | MIT | https://github.com/actions/toolkit |
+| @octokit/rest | ^20.0.2 | MIT | https://github.com/octokit/rest.js |
+| js-yaml | ^4.1.0 | MIT | https://github.com/nodeca/js-yaml |
+| compare-versions | ^6.1.0 | MIT | https://github.com/omichelsen/compare-versions |
+
+### Development Dependencies
+
+| Package | Version | License | Repository |
+|---------|---------|---------|------------|
+| @types/node | ^20.11.0 | MIT | https://github.com/DefinitelyTyped/DefinitelyTyped |
+| @types/js-yaml | ^4.0.9 | MIT | https://github.com/DefinitelyTyped/DefinitelyTyped |
+| typescript | ^5.3.3 | Apache-2.0 | https://github.com/microsoft/TypeScript |
+
+## Usage Terms
+
+This GitHub Action is provided under the MIT License. When using this action, you agree to:
+
+1. Comply with all applicable laws and GitHub's terms of service
+2. Only use the action for lawful purposes
+3. Not use the action in any way that could harm GitHub's systems or other users
+
+## Support
+
+For support, please open an issue in the GitHub repository.
+
+## Privacy
+
+This action does not collect any personal information. It only accesses:
+- Your repository's workflow files
+- Public GitHub API data for action versions
