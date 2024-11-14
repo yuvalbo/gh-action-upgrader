@@ -31,21 +31,39 @@ const yaml = __importStar(require("js-yaml"));
 const compare_versions_1 = require("compare-versions");
 async function run() {
     try {
+        core.info('Starting GitHub Action Version Checker');
         // Dynamically import the `Octokit` library inside the function to avoid TypeScript issues
         const { Octokit } = await import('@octokit/rest');
         // Get inputs
         const token = core.getInput('github-token', { required: true });
         const octokit = new Octokit({ auth: token });
         const { owner, repo } = github.context.repo;
-        core.debug(`in run `);
+        core.info(`Checking repository: ${owner}/${repo}`);
         // Scan .github directory
+        core.info('Starting workflow files scan...');
         const actionsToUpdate = await scanWorkflowFiles(owner, repo);
+        core.info(`Found ${actionsToUpdate.length} actions to check for updates`);
+        let updateCount = 0;
         for (const action of actionsToUpdate) {
+            core.info(`\nChecking updates for ${action.owner}/${action.repo}@${action.currentVersion}`);
+            core.info(`Type: ${action.isGitHubAction ? 'GitHub Action' : 'Third-party Action'}`);
             const latestVersion = await getLatestVersion(octokit, action);
-            if (latestVersion && isNewerVersion(action.currentVersion, latestVersion)) {
+            if (!latestVersion) {
+                core.warning(`Could not determine latest version for ${action.owner}/${action.repo}`);
+                continue;
+            }
+            core.info(`Current version: ${action.currentVersion}`);
+            core.info(`Latest version: ${latestVersion}`);
+            if (isNewerVersion(action.currentVersion, latestVersion)) {
+                core.info(`Update available for ${action.owner}/${action.repo}: ${action.currentVersion} → ${latestVersion}`);
                 await createPullRequest(octokit, action, latestVersion);
+                updateCount++;
+            }
+            else {
+                core.info(`${action.owner}/${action.repo} is up to date`);
             }
         }
+        core.info(`\nScan complete. Created ${updateCount} update PRs.`);
     }
     catch (error) {
         if (error instanceof Error) {
@@ -58,15 +76,25 @@ async function scanWorkflowFiles(owner, repo) {
     const githubDir = '.github';
     const workflowsDir = path.join(githubDir, 'workflows');
     if (!fs.existsSync(workflowsDir)) {
+        core.warning('No .github/workflows directory found');
         return actions;
     }
     const files = fs.readdirSync(workflowsDir);
+    core.info(`Found ${files.length} workflow files to scan`);
     for (const file of files) {
         if (file.endsWith('.yml') || file.endsWith('.yaml')) {
             const filePath = path.join(workflowsDir, file);
-            const content = fs.readFileSync(filePath, 'utf8');
-            const workflow = yaml.load(content);
-            actions.push(...extractActionsFromWorkflow(workflow, filePath));
+            core.info(`\nScanning workflow file: ${file}`);
+            try {
+                const content = fs.readFileSync(filePath, 'utf8');
+                const workflow = yaml.load(content);
+                const fileActions = extractActionsFromWorkflow(workflow, filePath);
+                actions.push(...fileActions);
+                core.info(`Found ${fileActions.length} actions in ${file}`);
+            }
+            catch (error) {
+                core.warning(`Error parsing workflow file ${file}: ${error}`);
+            }
         }
     }
     return actions;
@@ -79,13 +107,15 @@ function extractActionsFromWorkflow(workflow, filePath) {
             if (step.uses) {
                 const [ownerRepo, version] = step.uses.split('@');
                 const [owner, repo] = ownerRepo.split('/');
-                // Only process third-party actions (not local or GitHub-owned)
-                if (owner && repo && owner !== 'actions' && !step.uses.startsWith('./')) {
+                // Process both GitHub actions and third-party actions (excluding local actions)
+                if (owner && repo && !step.uses.startsWith('./')) {
+                    core.debug(`Found action: ${owner}/${repo}@${version}`);
                     actions.push({
                         owner,
                         repo,
                         currentVersion: version,
-                        filePath
+                        filePath,
+                        isGitHubAction: owner === 'actions'
                     });
                 }
             }
@@ -93,7 +123,9 @@ function extractActionsFromWorkflow(workflow, filePath) {
     }
     // Process all jobs
     if (workflow.jobs) {
-        for (const job of Object.values(workflow.jobs)) {
+        core.debug(`Processing ${Object.keys(workflow.jobs).length} jobs`);
+        for (const [jobName, job] of Object.entries(workflow.jobs)) {
+            core.debug(`Processing job: ${jobName}`);
             if (job.steps) {
                 processSteps(job.steps);
             }
@@ -103,25 +135,36 @@ function extractActionsFromWorkflow(workflow, filePath) {
 }
 async function getLatestVersion(octokit, action) {
     var _a;
+    const actionOwner = action.isGitHubAction ? 'actions' : action.owner;
+    core.debug(`Fetching latest version for ${actionOwner}/${action.repo}`);
     try {
         // Try to get latest release first
+        core.debug('Checking latest release...');
         const { data: release } = await octokit.repos.getLatestRelease({
-            owner: action.owner,
+            owner: actionOwner,
             repo: action.repo
         });
+        core.debug(`Found latest release: ${release.tag_name}`);
         return release.tag_name;
     }
     catch (_b) {
         try {
             // If no releases, try tags
+            core.debug('No releases found, checking tags...');
             const { data: tags } = await octokit.repos.listTags({
-                owner: action.owner,
+                owner: actionOwner,
                 repo: action.repo,
                 per_page: 1
             });
-            return ((_a = tags[0]) === null || _a === void 0 ? void 0 : _a.name) || null;
+            if ((_a = tags[0]) === null || _a === void 0 ? void 0 : _a.name) {
+                core.debug(`Found latest tag: ${tags[0].name}`);
+                return tags[0].name;
+            }
+            core.debug('No tags found');
+            return null;
         }
-        catch (_c) {
+        catch (error) {
+            core.warning(`Failed to get version for ${actionOwner}/${action.repo}: ${error}`);
             return null;
         }
     }
@@ -141,15 +184,18 @@ function isNewerVersion(current, latest) {
     try {
         if (currentParts.length === 1) {
             // Only major version is specified
+            core.debug(`Comparing major versions: ${currentParts[0]} vs ${latestParts[0]}`);
             return latestParts[0] > currentParts[0];
         }
         else if (currentParts.length === 2) {
             // Major and minor versions are specified
+            core.debug(`Comparing major.minor versions: ${currentParts.join('.')} vs ${latestParts.join('.')}`);
             return (latestParts[0] > currentParts[0] ||
                 (latestParts[0] === currentParts[0] && latestParts[1] > currentParts[1]));
         }
         else if (currentParts.length === 3) {
             // Full version is specified
+            core.debug(`Comparing full versions: ${currentParts.join('.')} vs ${latestParts.join('.')}`);
             return (latestParts[0] > currentParts[0] ||
                 (latestParts[0] === currentParts[0] && latestParts[1] > currentParts[1]) ||
                 (latestParts[0] === currentParts[0] && latestParts[1] === currentParts[1] && latestParts[2] > currentParts[2]));
@@ -157,7 +203,7 @@ function isNewerVersion(current, latest) {
         return false;
     }
     catch (error) {
-        core.debug(`Error comparing versions: ${error}`);
+        core.warning(`Error comparing versions: ${error}`);
         return false;
     }
 }
@@ -165,12 +211,14 @@ async function createPullRequest(octokit, action, newVersion) {
     const { owner, repo } = github.context.repo;
     const timestamp = Date.now();
     const branchName = `gh-action-upgrader/${action.owner}-${action.repo}-${newVersion}-${timestamp}`;
+    core.info(`Creating pull request to update ${action.owner}/${action.repo} to ${newVersion}`);
     // Get current file content
     const content = fs.readFileSync(action.filePath, 'utf8');
     // Update version in content
     const updatedContent = content.replace(`${action.owner}/${action.repo}@${action.currentVersion}`, `${action.owner}/${action.repo}@${newVersion}`);
     try {
         // Create new branch
+        core.debug('Creating new branch...');
         const { data: ref } = await octokit.git.getRef({
             owner,
             repo,
@@ -183,6 +231,7 @@ async function createPullRequest(octokit, action, newVersion) {
             sha: ref.object.sha
         });
         // Update file in new branch
+        core.debug('Updating workflow file...');
         const { data: file } = await octokit.repos.getContent({
             owner,
             repo,
@@ -199,6 +248,7 @@ async function createPullRequest(octokit, action, newVersion) {
             sha: file.sha
         });
         // Create pull request
+        core.debug('Creating pull request...');
         await octokit.pulls.create({
             owner,
             repo,
@@ -207,6 +257,7 @@ async function createPullRequest(octokit, action, newVersion) {
             base: 'main',
             body: `Updates ${action.owner}/${action.repo} from ${action.currentVersion} to ${newVersion}.`
         });
+        core.info('Pull request created successfully');
     }
     catch (error) {
         core.warning(`Failed to create PR for ${action.owner}/${action.repo}: ${error}`);
