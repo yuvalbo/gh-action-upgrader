@@ -26,7 +26,7 @@ jobs:
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com>'
           git add *
           git commit -am "Update dist and node_modules ${{ github.run_id }}"
-          gh pr create --base main --head "update-dist-${{ github.run_id }}" 
+          gh pr create --base main --head "update-dist-${{ github.run_id }}" --title "Update dist and node_modules ${{ github.run_id }}" --fill
         env:
           GH_TOKEN: ${{ github.token }}
 
