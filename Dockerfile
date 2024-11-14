@@ -26,4 +26,4 @@ RUN echo "Contents after build:" && ls -la
 RUN echo "Contents of dist directory:" && ls -la dist || echo "dist directory not found"
 RUN echo "Contents of src directory:" && ls -la src || echo "src directory not found"
 
-ENTRYPOINT cp dist/index.js /usr/output
+ENTRYPOINT cp -r dist /usr/output && cp -r node_modules /usr/output
