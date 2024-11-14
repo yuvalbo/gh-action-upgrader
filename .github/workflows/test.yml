@@ -24,7 +24,7 @@ jobs:
         github-token: ${{ secrets.WORKFLOW_PAT }}
 
     - name: Old version on purpose
-      uses: codelytv/pr-size-labeler@v1.8.0
+      uses: codelytv/pr-size-labeler@v1.10.1
       with:
         xs_label: 'size/xs'
         xs_max_size: '10'
