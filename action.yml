@@ -5,6 +5,10 @@ inputs:
   github-token:
     description: 'GitHub token for API authentication'
     required: true
+  base-branch:
+    description: 'The base branch on the target repo using this action'
+    required: true
+    default: "main"
 runs:
   using: 'node20'
   main: 'dist/index.js'
