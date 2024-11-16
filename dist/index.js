@@ -275,13 +275,15 @@ async function createPullRequest(octokit, action, newVersion) {
     const content = fs.readFileSync(action.filePath, 'utf8');
     // Update version in content
     const updatedContent = content.replace(`${action.owner}/${action.repo}@${action.currentVersion}`, `${action.owner}/${action.repo}@${newVersion}`);
+    const baseBranch = core.getInput('base-branch', { required: true });
+    core.info(`Using ${baseBranch} as base branch`);
     try {
         // Create new branch
         core.debug('Creating new branch...');
         const { data: ref } = await octokit.git.getRef({
             owner,
             repo,
-            ref: 'heads/main'
+            ref: `heads/${baseBranch}`
         });
         await octokit.git.createRef({
             owner,
@@ -295,7 +297,7 @@ async function createPullRequest(octokit, action, newVersion) {
             owner,
             repo,
             path: action.filePath,
-            ref: 'heads/main'
+            ref: `heads/${baseBranch}`
         });
         await octokit.repos.createOrUpdateFileContents({
             owner,
@@ -313,7 +315,7 @@ async function createPullRequest(octokit, action, newVersion) {
             repo,
             title: `Update ${action.owner}/${action.repo} to ${newVersion}`,
             head: branchName,
-            base: 'main',
+            base: `${baseBranch}`,
             body: `Updates ${action.owner}/${action.repo} from ${action.currentVersion} to ${newVersion}.`
         });
         core.info('Pull request created successfully');
