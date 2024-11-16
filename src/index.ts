@@ -176,7 +176,7 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
     
     // Get all valid versions from tags
     const allVersions = tags
-      .map((tags: Tags) => parseVersion(tags.name))
+      .map((tags: Tag) => parseVersion(tags.name))
       .filter((v: VersionInfo) => validate(v.raw));
 
     if (allVersions.length === 0) {
