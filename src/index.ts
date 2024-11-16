@@ -323,6 +323,7 @@ async function createPullRequest(
   );
 
   const baseBranch = core.getInput('base-branch', { required: true });
+  core.info(`Using ${baseBranch} as base branch`);
   
   try {
     // Create new branch
