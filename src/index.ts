@@ -13,6 +13,14 @@ interface ActionReference {
   isGitHubAction: boolean;
 }
 
+interface Release {
+  tag_name: string;
+}
+
+interface Tag {
+  name: string;
+}
+
 async function run(): Promise<void> {
   try {
     core.info('Starting GitHub Action Version Checker');
@@ -155,9 +163,9 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
     if (releases.length > 0) {
       // Filter valid versions and sort them
       const versions = releases
-        .map(release => release.tag_name.replace(/^v/, ''))
-        .filter(version => validate(version))
-        .sort((a, b) => compare(b, a));
+        .map((release: Release) => release.tag_name.replace(/^v/, ''))
+        .filter((version: string) => validate(version))
+        .sort((a: string, b: string) => compare(b, a, '>') ? 1 : -1);
 
       if (versions.length === 0) {
         return null;
@@ -169,7 +177,7 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
       // If original version was major only (v3)
       if (versionParts === 1) {
         // First try to find a major-only version release (v4)
-        const majorOnlyRelease = releases.find(release => 
+        const majorOnlyRelease = releases.find((release: Release) => 
           release.tag_name.replace(/^v/, '') === majorVersion ||
           release.tag_name === `v${majorVersion}`
         );
@@ -179,7 +187,7 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
         }
 
         // Then try to find major.minor version (v4.1)
-        const majorMinorVersion = versions.find(version => {
+        const majorMinorVersion = versions.find((version: string) => {
           const parts = version.split('.');
           return parts.length === 2 && parts[0] === majorVersion;
         });
@@ -195,7 +203,7 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
       // If original version was major.minor (v3.1)
       else if (versionParts === 2) {
         // Try to find latest major.minor version
-        const majorMinorVersion = versions.find(version => {
+        const majorMinorVersion = versions.find((version: string) => {
           const parts = version.split('.');
           return parts.length === 2;
         });
@@ -225,9 +233,9 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
 
     if (tags.length > 0) {
       const versions = tags
-        .map(tag => tag.name.replace(/^v/, ''))
-        .filter(version => validate(version))
-        .sort((a, b) => compare(b, a));
+        .map((tag: Tag) => tag.name.replace(/^v/, ''))
+        .filter((version: string) => validate(version))
+        .sort((a: string, b: string) => compare(b, a, '>') ? 1 : -1);
 
       if (versions.length === 0) {
         return null;
@@ -238,7 +246,7 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
 
       // Apply the same version format logic as with releases
       if (versionParts === 1) {
-        const majorOnlyTag = tags.find(tag => 
+        const majorOnlyTag = tags.find((tag: Tag) => 
           tag.name.replace(/^v/, '') === majorVersion ||
           tag.name === `v${majorVersion}`
         );
@@ -247,7 +255,7 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
           return majorOnlyTag.name;
         }
 
-        const majorMinorVersion = versions.find(version => {
+        const majorMinorVersion = versions.find((version: string) => {
           const parts = version.split('.');
           return parts.length === 2 && parts[0] === majorVersion;
         });
@@ -258,7 +266,7 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
 
         return `v${latestVersion}`;
       } else if (versionParts === 2) {
-        const majorMinorVersion = versions.find(version => {
+        const majorMinorVersion = versions.find((version: string) => {
           const parts = version.split('.');
           return parts.length === 2;
         });
