@@ -151,7 +151,6 @@ function extractActionsFromWorkflow(workflow: any, filePath: string): ActionRefe
   return actions;
 }
 
-
 function parseVersion(version: string): VersionInfo {
   const cleanVersion = version.replace(/^v/, '');
   const parts = cleanVersion.split('.').map(Number);
@@ -182,14 +181,14 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
     // Get all valid versions from releases
     const allVersions = releases
       .map((release: Release) => parseVersion(release.tag_name))
-      .filter(v => validate(v.raw));
+      .filter((v: VersionInfo) => validate(v.raw));
 
     if (allVersions.length === 0) {
       return null;
     }
 
     // Sort versions by major, minor, patch
-    allVersions.sort((a, b) => {
+    allVersions.sort((a: VersionInfo, b: VersionInfo) => {
       if (a.major !== b.major) return b.major - a.major;
       if (a.minor !== undefined && b.minor !== undefined) {
         if (a.minor !== b.minor) return b.minor - a.minor;
