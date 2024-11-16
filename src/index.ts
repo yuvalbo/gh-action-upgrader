@@ -151,156 +151,86 @@ function extractActionsFromWorkflow(workflow: any, filePath: string): ActionRefe
   return actions;
 }
 
-function parseVersion(version: string): VersionInfo {
-  const cleanVersion = version.replace(/^v/, '');
-  const parts = cleanVersion.split('.').map(Number);
-  
+function parseVersion(version: string): { major: number; minor?: number; patch?: number; raw: string } {
+  const match = version.match(/^v(\d+)(?:\.(\d+))?(?:\.(\d+))?$/);
+  if (!match) throw new Error(`Invalid version format: ${version}`);
   return {
-    major: parts[0],
-    minor: parts.length > 1 ? parts[1] : undefined,
-    patch: parts.length > 2 ? parts[2] : undefined,
-    raw: cleanVersion
+    major: parseInt(match[1], 10),
+    minor: match[2] ? parseInt(match[2], 10) : undefined,
+    patch: match[3] ? parseInt(match[3], 10) : undefined,
+    raw: version,
   };
 }
 
-async function getLatestVersion(octokit: any, action: ActionReference): Promise<string | null> {
-  const actionOwner = action.isGitHubAction ? 'actions' : action.owner;
-  core.debug(`Fetching latest version for ${actionOwner}/${action.repo}`);
-  
-  try {
-    // Get all releases
-    const { data: releases } = await octokit.repos.listReleases({
-      owner: actionOwner,
-      repo: action.repo,
-      per_page: 100
-    });
+function determineTargetVersion(currentVersion: string, releases: Release[]): string | null {
+  const parsedCurrent = parseVersion(currentVersion);
 
-    // Parse current version
-    const currentVersion = parseVersion(action.currentVersion);
-    
-    // Get all valid versions from releases
-    const allVersions = releases
-      .map((release: Release) => parseVersion(release.tag_name))
-      .filter((v: VersionInfo) => validate(v.raw));
+  // Sort releases by version (descending)
+  const sortedReleases = releases
+    .map((release) => parseVersion(release.tag_name))
+    .filter((v) => validate(v.raw))
+    .sort((a, b) => compare(b.raw, a.raw));
 
-    if (allVersions.length === 0) {
-      return null;
+  for (const release of sortedReleases) {
+    // Major-only case (e.g., v3)
+    if (parsedCurrent.minor === undefined) {
+      if (release.major > parsedCurrent.major) {
+        // Look for a major-only release (e.g., v4)
+        if (!release.minor && !release.patch) {
+          return `v${release.major}`;
+        }
+        // Fallback to latest full release (e.g., v4.x.y)
+        return `v${release.raw}`;
+      }
     }
-
-    // Sort versions by major, minor, patch
-    allVersions.sort((a: VersionInfo, b: VersionInfo) => {
-      if (a.major !== b.major) return b.major - a.major;
-      if (a.minor !== undefined && b.minor !== undefined) {
-        if (a.minor !== b.minor) return b.minor - a.minor;
+    // Major.Minor case (e.g., v3.1)
+    else if (parsedCurrent.patch === undefined) {
+      if (release.major === parsedCurrent.major && release.minor > parsedCurrent.minor) {
+        // Look for a major.minor release (e.g., v3.2)
+        if (!release.patch) {
+          return `v${release.major}.${release.minor}`;
+        }
+        // Fallback to latest full release (e.g., v3.2.x)
+        return `v${release.raw}`;
       }
-      if (a.patch !== undefined && b.patch !== undefined) {
-        return b.patch - a.patch;
-      }
-      return 0;
-    });
-
-    // Get latest full version
-    const latestVersion = allVersions[0];
-
-    // If no newer major version exists, no upgrade needed
-    if (latestVersion.major <= currentVersion.major) {
-      return null;
     }
-
-    core.debug(`Current version format: ${currentVersion.minor === undefined ? 'major' : 
-               currentVersion.patch === undefined ? 'major.minor' : 'major.minor.patch'}`);
-
-    // Case 1: Original version is major only (e.g., v3)
-    if (currentVersion.minor === undefined) {
-      // First try to find a major-only release of the new version
-      const majorOnlyRelease = releases.find((release: Release) => {
-        const version = parseVersion(release.tag_name);
-        return version.major === latestVersion.major && 
-               version.minor === undefined && 
-               version.patch === undefined;
-      });
-
-      if (majorOnlyRelease) {
-        core.debug(`Found major-only release: ${majorOnlyRelease.tag_name}`);
-        return majorOnlyRelease.tag_name;
-      }
-
-      // If no major-only release exists, check for major.minor release
-      const majorMinorRelease = releases.find((release: Release) => {
-        const version = parseVersion(release.tag_name);
-        return version.major === latestVersion.major && 
-               version.minor !== undefined && 
-               version.patch === undefined;
-      });
-
-      if (majorMinorRelease) {
-        core.debug(`Found major.minor release: ${majorMinorRelease.tag_name}`);
-        return majorMinorRelease.tag_name;
-      }
-
-      // If neither exists, use the full version
-      core.debug(`Using full version: v${latestVersion.raw}`);
-      return `v${latestVersion.raw}`;
-    }
-
-    // Case 2: Original version is major.minor (e.g., v3.1)
-    else if (currentVersion.patch === undefined) {
-      // Try to find a major.minor release of the new version
-      const majorMinorRelease = releases.find((release: Release) => {
-        const version = parseVersion(release.tag_name);
-        return version.major === latestVersion.major && 
-               version.minor !== undefined && 
-               version.patch === undefined;
-      });
-
-      if (majorMinorRelease) {
-        core.debug(`Found major.minor release: ${majorMinorRelease.tag_name}`);
-        return majorMinorRelease.tag_name;
-      }
-
-      // If no major.minor release exists, use the full version
-      core.debug(`Using full version: v${latestVersion.raw}`);
-      return `v${latestVersion.raw}`;
-    }
-
-    // Case 3: Original version is major.minor.patch (e.g., v3.1.2)
+    // Major.Minor.Patch case (e.g., v3.1.2)
     else {
-      core.debug(`Using full version: v${latestVersion.raw}`);
-      return `v${latestVersion.raw}`;
+      if (
+        release.major === parsedCurrent.major &&
+        release.minor === parsedCurrent.minor &&
+        release.patch > parsedCurrent.patch
+      ) {
+        return `v${release.raw}`;
+      }
     }
-  } catch (error) {
-    core.warning(`Failed to get version for ${actionOwner}/${action.repo}: ${error}`);
-    return null;
   }
+
+  // No upgrade available
+  return null;
 }
 
-function isNewerVersion(current: string, latest: string): boolean {
-  const currentVer = parseVersion(current);
-  const latestVer = parseVersion(latest);
 
-  // First compare major versions
-  if (latestVer.major > currentVer.major) {
-    return true;
-  } else if (latestVer.major < currentVer.major) {
-    return false;
-  }
+async function getLatestVersion(currentVersion: string, releases: Release[]): Promise<string | null> {
+  // Fetch the target version using determineTargetVersion
+  return  determineTargetVersion(currentVersion, releases);
+}
 
-  // If major versions are equal and we have minor versions to compare
-  if (currentVer.minor !== undefined && latestVer.minor !== undefined) {
-    if (latestVer.minor > currentVer.minor) {
-      return true;
-    } else if (latestVer.minor < currentVer.minor) {
-      return false;
-    }
 
-    // If minor versions are equal and we have patch versions to compare
-    if (currentVer.patch !== undefined && latestVer.patch !== undefined) {
-      return latestVer.patch > currentVer.patch;
+function isNewerVersion(currentVersion: string, newVersion: string): boolean {
+  const current = parseVersion(currentVersion);
+  const latest = parseVersion(newVersion);
+
+  if (latest.major > current.major) return true;
+  if (latest.major === current.major) {
+    if ((latest.minor ?? 0) > (current.minor ?? 0)) return true;
+    if ((latest.minor ?? 0) === (current.minor ?? 0)) {
+      return (latest.patch ?? 0) > (current.patch ?? 0);
     }
   }
-
   return false;
 }
+
 
 
 async function createPullRequest(
