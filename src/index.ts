@@ -200,15 +200,14 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
     // Get latest full version
     const latestVersion = allVersions[0];
 
-    core.debug(`Latest version of ${actionOwner}/${action.repo} is ${latestVersion}`);
-
-    // If no newer major version exists, no upgrade needed
-    if (latestVersion.major <= currentVersion.major) {
-      return null;
-    }
-
+    core.debug(`Latest version of ${actionOwner}/${action.repo} is ${latestVersion.raw}`);
     core.debug(`Current version format: ${currentVersion.minor === undefined ? 'major' : 
                currentVersion.patch === undefined ? 'major.minor' : 'major.minor.patch'}`);
+
+    // If no newer major version exists, no upgrade needed
+    if (latestVersion.major <= currentVersion.major && currentVersion.minor === undefined) {
+      return null;
+    }    
 
     // Case 1: Original version is major only (e.g., v3)
     if (currentVersion.minor === undefined) {
