@@ -183,6 +183,8 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
       return null;
     }
 
+    core.debug(`Found ${allVersions.length} versions for ${actionOwner}/${action.repo}`);
+
     // Sort versions by major, minor, patch
     allVersions.sort((a: VersionInfo, b: VersionInfo) => {
       if (a.major !== b.major) return b.major - a.major;
@@ -197,6 +199,8 @@ async function getLatestVersion(octokit: any, action: ActionReference): Promise<
 
     // Get latest full version
     const latestVersion = allVersions[0];
+
+    core.debug(`Latest version of ${actionOwner}/${action.repo} is ${latestVersion}`);
 
     // If no newer major version exists, no upgrade needed
     if (latestVersion.major <= currentVersion.major) {
