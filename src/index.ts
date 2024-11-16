@@ -321,6 +321,8 @@ async function createPullRequest(
     `${action.owner}/${action.repo}@${action.currentVersion}`,
     `${action.owner}/${action.repo}@${newVersion}`
   );
+
+  const baseBranch = core.getInput('base-branch', { required: true });
   
   try {
     // Create new branch
@@ -328,7 +330,7 @@ async function createPullRequest(
     const { data: ref } = await octokit.git.getRef({
       owner,
       repo,
-      ref: 'heads/main'
+      ref: `heads/${baseBranch}`
     });
     
     await octokit.git.createRef({
@@ -344,7 +346,7 @@ async function createPullRequest(
       owner,
       repo,
       path: action.filePath,
-      ref: 'heads/main'
+      ref: `heads/${baseBranch}`
     });
     
     await octokit.repos.createOrUpdateFileContents({
@@ -364,7 +366,7 @@ async function createPullRequest(
       repo,
       title: `Update ${action.owner}/${action.repo} to ${newVersion}`,
       head: branchName,
-      base: 'main',
+      base: `${baseBranch}`,
       body: `Updates ${action.owner}/${action.repo} from ${action.currentVersion} to ${newVersion}.`
     });
     
