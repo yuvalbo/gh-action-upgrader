@@ -15,7 +15,7 @@ jobs:
       uses: ./
       with:
         github-token: ${{ secrets.WORKFLOW_PAT }}
-        base-branch: develop
+        base-branch: main
 
     - name: Old version on purpose
       uses: codelytv/pr-size-labeler@v1.8.0
