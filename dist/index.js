@@ -147,17 +147,17 @@ async function getLatestVersion(octokit, action) {
     const actionOwner = action.isGitHubAction ? 'actions' : action.owner;
     core.debug(`Fetching latest version for ${actionOwner}/${action.repo}`);
     try {
-        // Get all releases
-        const { data: releases } = await octokit.repos.listReleases({
+        // Get all tags
+        const { data: tags } = await octokit.repos.listTags({
             owner: actionOwner,
             repo: action.repo,
             per_page: 100
         });
         // Parse current version
         const currentVersion = parseVersion(action.currentVersion);
-        // Get all valid versions from releases
-        const allVersions = releases
-            .map((release) => parseVersion(release.tag_name))
+        // Get all valid versions from tags
+        const allVersions = tags
+            .map((tags) => parseVersion(tags.name))
             .filter((v) => (0, compare_versions_1.validate)(v.raw));
         if (allVersions.length === 0) {
             return null;
@@ -185,27 +185,27 @@ async function getLatestVersion(octokit, action) {
             currentVersion.patch === undefined ? 'major.minor' : 'major.minor.patch'}`);
         // Case 1: Original version is major only (e.g., v3)
         if (currentVersion.minor === undefined) {
-            // First try to find a major-only release of the new version
-            const majorOnlyRelease = releases.find((release) => {
-                const version = parseVersion(release.tag_name);
+            // First try to find a major-only tags of the new version ******
+            const majorOnlyTag = tags.find((tag) => {
+                const version = parseVersion(tag.name);
                 return version.major === latestVersion.major &&
                     version.minor === undefined &&
                     version.patch === undefined;
             });
-            if (majorOnlyRelease) {
-                core.debug(`Found major-only release: ${majorOnlyRelease.tag_name}`);
-                return majorOnlyRelease.tag_name;
+            if (majorOnlyTag) {
+                core.debug(`Found major-only tag: ${majorOnlyTag.name}`);
+                return majorOnlyTag.name;
             }
-            // If no major-only release exists, check for major.minor release
-            const majorMinorRelease = releases.find((release) => {
-                const version = parseVersion(release.tag_name);
+            // If no major-only tag exists, check for major.minor tag
+            const majorMinorTag = tags.find((tag) => {
+                const version = parseVersion(tag.name);
                 return version.major === latestVersion.major &&
                     version.minor !== undefined &&
                     version.patch === undefined;
             });
-            if (majorMinorRelease) {
-                core.debug(`Found major.minor release: ${majorMinorRelease.tag_name}`);
-                return majorMinorRelease.tag_name;
+            if (majorMinorTag) {
+                core.debug(`Found major.minor tag: ${majorMinorTag.name}`);
+                return majorMinorTag.name;
             }
             // If neither exists, use the full version
             core.debug(`Using full version: v${latestVersion.raw}`);
@@ -213,18 +213,18 @@ async function getLatestVersion(octokit, action) {
         }
         // Case 2: Original version is major.minor (e.g., v3.1)
         else if (currentVersion.patch === undefined) {
-            // Try to find a major.minor release of the new version
-            const majorMinorRelease = releases.find((release) => {
-                const version = parseVersion(release.tag_name);
+            // Try to find a major.minor tag of the new version
+            const majorMinorTag = tags.find((tag) => {
+                const version = parseVersion(tag.name);
                 return version.major === latestVersion.major &&
                     version.minor !== undefined &&
                     version.patch === undefined;
             });
-            if (majorMinorRelease) {
-                core.debug(`Found major.minor release: ${majorMinorRelease.tag_name}`);
-                return majorMinorRelease.tag_name;
+            if (majorMinorTag) {
+                core.debug(`Found major.minor tag: ${majorMinorTag.name}`);
+                return majorMinorTag.name;
             }
-            // If no major.minor release exists, use the full version
+            // If no major.minor tag exists, use the full version
             core.debug(`Using full version: v${latestVersion.raw}`);
             return `v${latestVersion.raw}`;
         }
