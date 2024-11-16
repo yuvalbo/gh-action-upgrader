@@ -134,39 +134,120 @@ function extractActionsFromWorkflow(workflow, filePath) {
     return actions;
 }
 async function getLatestVersion(octokit, action) {
-    var _a;
     const actionOwner = action.isGitHubAction ? 'actions' : action.owner;
     core.debug(`Fetching latest version for ${actionOwner}/${action.repo}`);
+    // Determine the format of the current version
+    const versionParts = action.currentVersion.replace(/^v/, '').split('.').length;
     try {
-        // Try to get latest release first
-        core.debug('Checking latest release...');
-        const { data: release } = await octokit.repos.getLatestRelease({
+        // Get all releases
+        const { data: releases } = await octokit.repos.listReleases({
             owner: actionOwner,
-            repo: action.repo
+            repo: action.repo,
+            per_page: 100
         });
-        core.debug(`Found latest release: ${release.tag_name}`);
-        return release.tag_name;
-    }
-    catch (_b) {
-        try {
-            // If no releases, try tags
-            core.debug('No releases found, checking tags...');
-            const { data: tags } = await octokit.repos.listTags({
-                owner: actionOwner,
-                repo: action.repo,
-                per_page: 1
-            });
-            if ((_a = tags[0]) === null || _a === void 0 ? void 0 : _a.name) {
-                core.debug(`Found latest tag: ${tags[0].name}`);
-                return tags[0].name;
+        if (releases.length > 0) {
+            // Filter valid versions and sort them
+            const versions = releases
+                .map((release) => release.tag_name.replace(/^v/, ''))
+                .filter((version) => (0, compare_versions_1.validate)(version))
+                .sort((a, b) => (0, compare_versions_1.compare)(b, a, '>') ? 1 : -1);
+            if (versions.length === 0) {
+                return null;
             }
-            core.debug('No tags found');
-            return null;
+            const latestFullVersion = versions[0];
+            const majorVersion = latestFullVersion.split('.')[0];
+            // If original version was major only (v3)
+            if (versionParts === 1) {
+                // First try to find a major-only version release (v4)
+                const majorOnlyRelease = releases.find((release) => release.tag_name.replace(/^v/, '') === majorVersion ||
+                    release.tag_name === `v${majorVersion}`);
+                if (majorOnlyRelease) {
+                    return majorOnlyRelease.tag_name;
+                }
+                // Then try to find major.minor version (v4.1)
+                const majorMinorVersion = versions.find((version) => {
+                    const parts = version.split('.');
+                    return parts.length === 2 && parts[0] === majorVersion;
+                });
+                if (majorMinorVersion) {
+                    return `v${majorMinorVersion}`;
+                }
+                // Finally, fall back to full version (v4.1.2)
+                return `v${latestFullVersion}`;
+            }
+            // If original version was major.minor (v3.1)
+            else if (versionParts === 2) {
+                // Try to find latest major.minor version
+                const majorMinorVersion = versions.find((version) => {
+                    const parts = version.split('.');
+                    return parts.length === 2;
+                });
+                if (majorMinorVersion) {
+                    return `v${majorMinorVersion}`;
+                }
+                // Fall back to full version but only include major.minor
+                const parts = latestFullVersion.split('.');
+                return `v${parts[0]}.${parts[1]}`;
+            }
+            // If original version was major.minor.patch (v3.1.2)
+            else {
+                return `v${latestFullVersion}`;
+            }
         }
-        catch (error) {
-            core.warning(`Failed to get version for ${actionOwner}/${action.repo}: ${error}`);
-            return null;
+        // If no releases found, try tags
+        core.debug('No releases found, checking tags...');
+        const { data: tags } = await octokit.repos.listTags({
+            owner: actionOwner,
+            repo: action.repo,
+            per_page: 100
+        });
+        if (tags.length > 0) {
+            const versions = tags
+                .map((tag) => tag.name.replace(/^v/, ''))
+                .filter((version) => (0, compare_versions_1.validate)(version))
+                .sort((a, b) => (0, compare_versions_1.compare)(b, a, '>') ? 1 : -1);
+            if (versions.length === 0) {
+                return null;
+            }
+            const latestVersion = versions[0];
+            const majorVersion = latestVersion.split('.')[0];
+            // Apply the same version format logic as with releases
+            if (versionParts === 1) {
+                const majorOnlyTag = tags.find((tag) => tag.name.replace(/^v/, '') === majorVersion ||
+                    tag.name === `v${majorVersion}`);
+                if (majorOnlyTag) {
+                    return majorOnlyTag.name;
+                }
+                const majorMinorVersion = versions.find((version) => {
+                    const parts = version.split('.');
+                    return parts.length === 2 && parts[0] === majorVersion;
+                });
+                if (majorMinorVersion) {
+                    return `v${majorMinorVersion}`;
+                }
+                return `v${latestVersion}`;
+            }
+            else if (versionParts === 2) {
+                const majorMinorVersion = versions.find((version) => {
+                    const parts = version.split('.');
+                    return parts.length === 2;
+                });
+                if (majorMinorVersion) {
+                    return `v${majorMinorVersion}`;
+                }
+                const parts = latestVersion.split('.');
+                return `v${parts[0]}.${parts[1]}`;
+            }
+            else {
+                return `v${latestVersion}`;
+            }
         }
+        core.debug('No tags found');
+        return null;
+    }
+    catch (error) {
+        core.warning(`Failed to get version for ${actionOwner}/${action.repo}: ${error}`);
+        return null;
     }
 }
 function isNewerVersion(current, latest) {
@@ -178,29 +259,25 @@ function isNewerVersion(current, latest) {
         core.debug(`Invalid version format: current=${current}, latest=${latest}`);
         return false;
     }
-    // Split versions into parts (major.minor.patch)
     const currentParts = current.split('.').map(Number);
     const latestParts = latest.split('.').map(Number);
     try {
+        // Compare based on the number of parts in the current version
         if (currentParts.length === 1) {
-            // Only major version is specified
-            core.debug(`Comparing major versions: ${currentParts[0]} vs ${latestParts[0]}`);
+            // Only compare major versions
             return latestParts[0] > currentParts[0];
         }
         else if (currentParts.length === 2) {
-            // Major and minor versions are specified
-            core.debug(`Comparing major.minor versions: ${currentParts.join('.')} vs ${latestParts.join('.')}`);
+            // Compare major and minor versions
             return (latestParts[0] > currentParts[0] ||
                 (latestParts[0] === currentParts[0] && latestParts[1] > currentParts[1]));
         }
-        else if (currentParts.length === 3) {
-            // Full version is specified
-            core.debug(`Comparing full versions: ${currentParts.join('.')} vs ${latestParts.join('.')}`);
+        else {
+            // Compare full versions
             return (latestParts[0] > currentParts[0] ||
                 (latestParts[0] === currentParts[0] && latestParts[1] > currentParts[1]) ||
                 (latestParts[0] === currentParts[0] && latestParts[1] === currentParts[1] && latestParts[2] > currentParts[2]));
         }
-        return false;
     }
     catch (error) {
         core.warning(`Error comparing versions: ${error}`);
