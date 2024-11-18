@@ -328,10 +328,11 @@ async function createPullRequest(
   try {
     // Create new branch
     core.debug('Creating new branch...');
+    // Changed to use the full ref path without URL encoding
     const { data: ref } = await octokit.git.getRef({
       owner,
       repo,
-      ref: `heads/${baseBranch}`
+      ref: 'refs/heads/' + baseBranch  // Changed this line to include 'refs/'
     });
     
     await octokit.git.createRef({
@@ -367,13 +368,14 @@ async function createPullRequest(
       repo,
       title: `Update ${action.owner}/${action.repo} to ${newVersion}`,
       head: branchName,
-      base: `${baseBranch}`,
+      base: baseBranch,
       body: `Updates ${action.owner}/${action.repo} from ${action.currentVersion} to ${newVersion}.`
     });
     
     core.info('Pull request created successfully');
   } catch (error) {
-    core.warning(`Failed to create PR for ${action.owner}/${action.repo}: ${error}`);
+    core.error(`Failed to create PR for ${action.owner}/${action.repo}: ${error.message}`);
+    throw error;
   }
 }
 

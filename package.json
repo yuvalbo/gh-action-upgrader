@@ -1,9 +1,9 @@
 {
   "name": "github-action-updater",
-  "version": "1.0.0",
+  "version": "0.2.1",
   "scripts": {
     "build": "tsc",
-    "package": "npm run build && ncc build --source-map --license licenses.txt",
+    "package": "tsc && ncc build",
     "start": "node dist/index.js"
   },
   "dependencies": {
@@ -16,6 +16,7 @@
   "devDependencies": {
     "typescript": "5.6.3",
     "@types/node": "22.9.0",
-    "@types/js-yaml": "latest"
+    "@types/js-yaml": "latest",
+    "@vercel/ncc": "^0.38.3"
   }
 }
