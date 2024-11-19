@@ -286,7 +286,7 @@ async function createPullRequest(octokit, action, newVersion) {
     core.info(`Using ${baseBranch} as base branch`);
     try {
         // Get the base branch reference
-        let refUrl = `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${baseBranch}`;
+        let refUrl = `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${baseBranch}`;
         const baseRefResponse = await fetch(refUrl, { headers });
         if (!baseRefResponse.ok) {
             throw new Error(`Failed to get base branch reference: ${refUrl} response: ${await baseRefResponse.text()}`);
