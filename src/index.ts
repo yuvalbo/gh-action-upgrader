@@ -368,13 +368,14 @@ async function createPullRequest(
   
   try {
     // Get the base branch reference
+    let refUrl = `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${baseBranch}`
     const baseRefResponse = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${baseBranch}`,
+      refUrl,
       { headers }
     );
     
     if (!baseRefResponse.ok) {
-      throw new Error(`Failed to get base branch reference: ${await baseRefResponse.text()}`);
+      throw new Error(`Failed to get base branch reference: ${refUrl} response: ${await baseRefResponse.text()}`);
     }
     
     const baseRef = await baseRefResponse.json() as GitReference;
