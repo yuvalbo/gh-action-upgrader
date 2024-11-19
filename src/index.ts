@@ -368,7 +368,7 @@ async function createPullRequest(
   
   try {
     // Get the base branch reference
-    let refUrl = `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${baseBranch}`
+    let refUrl = `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${baseBranch}`
     const baseRefResponse = await fetch(
       refUrl,
       { headers }
