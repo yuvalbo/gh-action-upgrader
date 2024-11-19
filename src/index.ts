@@ -301,6 +301,39 @@ function isNewerVersion(current: string, latest: string): boolean {
   return false;
 }
 
+interface GitReference {
+  ref: string;
+  node_id: string;
+  url: string;
+  object: {
+    sha: string;
+    type: string;
+    url: string;
+  };
+}
+
+interface FileContent {
+  name: string;
+  path: string;
+  sha: string;
+  size: number;
+  url: string;
+  html_url: string;
+  git_url: string;
+  download_url: string;
+  type: string;
+  content: string;
+  encoding: string;
+}
+
+interface PullRequest {
+  url: string;
+  id: number;
+  number: number;
+  state: string;
+  title: string;
+  body: string;
+}
 
 async function createPullRequest(
   octokit: any,
@@ -310,6 +343,14 @@ async function createPullRequest(
   const { owner, repo } = github.context.repo;
   const timestamp = Date.now();
   const branchName = `gh-action-upgrader/${action.owner}-${action.repo}-${newVersion}-${timestamp}`;
+  const token = core.getInput('github-token');
+  
+  const headers = {
+    'Authorization': `token ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
   
   core.info(`Creating pull request to update ${action.owner}/${action.repo} to ${newVersion}`);
   
@@ -326,54 +367,100 @@ async function createPullRequest(
   core.info(`Using ${baseBranch} as base branch`);
   
   try {
+    // Get the base branch reference
+    let refUrl = `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${baseBranch}`
+    const baseRefResponse = await fetch(
+      refUrl,
+      { headers }
+    );
+    
+    if (!baseRefResponse.ok) {
+      throw new Error(`Failed to get base branch reference: ${`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${baseBranch}`} response: ${await baseRefResponse.text()}`);
+    }
+    
+    const baseRef = await baseRefResponse.json() as GitReference;
+    const baseSha = baseRef.object.sha;
+
     // Create new branch
     core.debug('Creating new branch...');
-    const { data: ref } = await octokit.git.getRef({
-      owner,
-      repo,
-      ref: `heads/${baseBranch}`
-    });
-    
-    await octokit.git.createRef({
-      owner,
-      repo,
-      ref: `refs/heads/${branchName}`,
-      sha: ref.object.sha
-    });
+    const createRefResponse = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/git/refs`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          ref: `refs/heads/${branchName}`,
+          sha: baseSha
+        })
+      }
+    );
+
+    if (!createRefResponse.ok) {
+      throw new Error(`Failed to create new branch: ${await createRefResponse.text()}`);
+    }
+
+    // Get the current file content and sha
+    const fileContentResponse = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/contents/${action.filePath}?ref=${baseBranch}`,
+      { headers }
+    );
+
+    if (!fileContentResponse.ok) {
+      throw new Error(`Failed to get file content: ${await fileContentResponse.text()}`);
+    }
+
+    const fileContent = await fileContentResponse.json() as FileContent;
     
     // Update file in new branch
     core.debug('Updating workflow file...');
-    const { data: file } = await octokit.repos.getContent({
-      owner,
-      repo,
-      path: action.filePath,
-      ref: `heads/${baseBranch}`
-    });
-    
-    await octokit.repos.createOrUpdateFileContents({
-      owner,
-      repo,
-      path: action.filePath,
-      message: `Update ${action.owner}/${action.repo} to ${newVersion}`,
-      content: Buffer.from(updatedContent).toString('base64'),
-      branch: branchName,
-      sha: (file as any).sha
-    });
-    
+    const updateFileResponse = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/contents/${action.filePath}`,
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          message: `Update ${action.owner}/${action.repo} to ${newVersion}`,
+          content: Buffer.from(updatedContent).toString('base64'),
+          sha: fileContent.sha,
+          branch: branchName
+        })
+      }
+    );
+
+    if (!updateFileResponse.ok) {
+      throw new Error(`Failed to update file: ${await updateFileResponse.text()}`);
+    }
+
     // Create pull request
     core.debug('Creating pull request...');
-    await octokit.pulls.create({
-      owner,
-      repo,
-      title: `Update ${action.owner}/${action.repo} to ${newVersion}`,
-      head: branchName,
-      base: `${baseBranch}`,
-      body: `Updates ${action.owner}/${action.repo} from ${action.currentVersion} to ${newVersion}.`
-    });
+    const createPrResponse = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/pulls`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          title: `Update ${action.owner}/${action.repo} to ${newVersion}`,
+          head: branchName,
+          base: baseBranch,
+          body: `Updates ${action.owner}/${action.repo} from ${action.currentVersion} to ${newVersion}.`
+        })
+      }
+    );
+
+    if (!createPrResponse.ok) {
+      throw new Error(`Failed to create PR: ${await createPrResponse.text()}`);
+    }
     
-    core.info('Pull request created successfully');
+    const pullRequest = await createPrResponse.json() as PullRequest;
+    core.info(`Pull request #${pullRequest.number} created successfully`);
   } catch (error) {
-    core.warning(`Failed to create PR for ${action.owner}/${action.repo}: ${error}`);
+    if (error instanceof Error) {
+      core.error(`Failed to create PR: ${error.message}`);
+      throw error;
+    } else {
+      core.error('Failed to create PR due to an unknown error');
+      throw new Error('Unknown error creating PR');
+    }
   }
 }
 
